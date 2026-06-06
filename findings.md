@@ -8,7 +8,7 @@ This document summarizes the live operational findings gathered from the running
 
 The web interface utilizes a high-fidelity glassmorphic UI design, projecting live sensor feeds, system status cards, machine-specific analytics, and a scrolling anomaly feed.
 
-![Sentinel·SCADA Live Dashboard Overview](C:/Users/saqib/.gemini/antigravity/brain/55cc3813-356d-4178-a98a-2ef086ad0043/artifacts/dashboard_overview.png)
+![Sentinel·SCADA Live Dashboard Overview](docs/images/dashboard_overview.png)
 
 *Figure 1: Main overview of Sentinel·SCADA Web Dashboard, showcasing the 10 monitored assets, current overall OEE, machine health indices, and the real-time sensor plot on the right (ROB-02 selected).*
 

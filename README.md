@@ -8,6 +8,8 @@
 
 An end-to-end, industrial-grade machine monitoring and predictive maintenance platform simulating a smart factory of **10 machines** emitting real-time IoT sensor data (temperature, vibration, pressure, energy usage). The system automatically detects **anomalies** using rolling statistics, computes **predictive-maintenance** risks & Remaining Useful Life (RUL) on-the-fly, and serves a live glassmorphic dashboard alongside pre-configured views for **Power BI** reporting.
 
+![Sentinel·SCADA Live Dashboard Overview](docs/images/dashboard_overview.png)
+
 ---
 
 ## 🗺️ Project Documentation Navigation
