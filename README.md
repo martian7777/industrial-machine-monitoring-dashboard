@@ -1,153 +1,100 @@
 # 🏭 Sentinel·SCADA — Industrial Machine Monitoring Dashboard
 
-An end-to-end, industrial-grade machine monitoring platform that simulates a
-smart factory of **10 machines** emitting IoT sensor data (temperature,
-vibration, pressure, energy), automatically flags **anomalies**, and computes
-**predictive-maintenance** risk & Remaining Useful Life (RUL) — all visualised
-on a premium real-time dashboard and ready for **Power BI** reporting.
+![PostgreSQL](https://img.shields.io/badge/database-PostgreSQL%20%2F%20Supabase-blue?style=for-the-badge&logo=postgresql)
+![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688?style=for-the-badge&logo=fastapi)
+![React](https://img.shields.io/badge/frontend-React%20%2F%20Vite-61DAFB?style=for-the-badge&logo=react)
+![Pandas](https://img.shields.io/badge/analytics-Pandas%20%2F%20SQLAlchemy-150458?style=for-the-badge&logo=pandas)
+![Docker](https://img.shields.io/badge/infrastructure-Docker%20Compose-2496ED?style=for-the-badge&logo=docker)
 
-```
-IoT Simulator ─POST▶ FastAPI ─┬─ ingest + anomaly + RUL ─▶ PostgreSQL / Supabase
-   (10 machines)              │                                 ▲          │
-                              └─ WebSocket ─▶ React Dashboard   │          │
-                                                                │          ▼
-                              ETL (Pandas) ─ daily aggregates ──┘    Power BI (views)
-```
-
-## Stack
-
-| Layer       | Tech                                                        |
-|-------------|------------------------------------------------------------|
-| Database    | PostgreSQL / **Supabase** (cloud by default)               |
-| Backend     | **FastAPI**, SQLAlchemy 2, WebSockets                       |
-| Analytics   | Rolling Z-score anomaly detection + RUL/risk model         |
-| Simulator   | Python daemon, realistic per-type profiles + fault injection |
-| ETL         | Python + **Pandas**, hourly daily-aggregate upserts        |
-| Frontend    | **Vite + React**, **Recharts**, vanilla CSS (glassmorphic) |
-| BI          | Power BI star-schema views + DAX kit                       |
+An end-to-end, industrial-grade machine monitoring and predictive maintenance platform simulating a smart factory of **10 machines** emitting real-time IoT sensor data (temperature, vibration, pressure, energy usage). The system automatically detects **anomalies** using rolling statistics, computes **predictive-maintenance** risks & Remaining Useful Life (RUL) on-the-fly, and serves a live glassmorphic dashboard alongside pre-configured views for **Power BI** reporting.
 
 ---
 
-## Quick start (cloud Supabase)
+## 🗺️ Project Documentation Navigation
 
-### 1. Configure environment
+To explore detailed specifications, deployment guides, or live dashboard results, navigate through the following documents:
+
+* 📊 **[Live Operational Findings](findings.md)**: View a snapshot of fleet performance, key insights on active equipment faults (e.g. `CMP-01` compressor and `PMP-01` hydraulic pump), API responses, and screenshot captures of the live user interface.
+* 🏗️ **[System Architecture](architecture.md)**: Discover details on the end-to-end data pipeline, database star schema, real-time WebSocket ingestion sequence, and mathematical formulations for the anomaly detection Z-score and Remaining Useful Life (RUL) estimation.
+* 📖 **[Project Operator Wiki](wiki.md)**: Find developer onboarding instructions, comprehensive environment configuration reference, guides on scaling/registering new assets, data partition guidelines, and solutions to common SSL or Docker networking issues.
+
+---
+
+## ⚙️ Core Stack Overview
+
+| Layer | Technologies & Implementations |
+| :--- | :--- |
+| **Database** | PostgreSQL / **Supabase** (Fully relational schema with custom indexes and Power BI reporting views) |
+| **Backend** | **FastAPI** (Python 3.10+), SQLAlchemy 2, real-time WebSockets, Swagger UI auto-documentation |
+| **Analytics** | Deterministic rolling Z-score anomaly detection + condition-based wear & risk estimation model |
+| **Simulator** | Python daemon generating realistic telemetry based on specific machine profiles + random fault injections |
+| **ETL Pipeline** | Python daemon utilizing **Pandas** for batch-aggregation of time-series records into daily metrics |
+| **Frontend** | **Vite + React**, **Recharts** for live telemetry plots, and glassmorphic vanilla CSS UI |
+| **BI Reporting** | Pre-defined relational database views supporting a standard **Power BI Star Schema** and DAX measure kit |
+
+---
+
+## ⚡ Quick Start
+
+### 1. Configure the Environment
+Copy the example environment file:
 ```powershell
 Copy-Item .env.example .env
 ```
-Edit `.env` and set your Supabase connection string:
-```
+Edit `.env` and set your Supabase or local PostgreSQL connection string:
+```env
 DATABASE_URL=postgresql+psycopg2://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
 DB_SSLMODE=require
 ```
-> Get this from **Supabase → Project Settings → Database → Connection string**.
-> Keep the `postgresql+psycopg2://` prefix (the backend also auto-fixes a plain URL).
 
-### 2. Create the schema
-Open the **Supabase SQL Editor**, paste the contents of
-[`db/init.sql`](db/init.sql), and run it. This creates all tables, seeds the 10
-machines, and creates the Power BI views.
+### 2. Set Up the Schema
+Open the **Supabase SQL Editor** (or database client), paste the contents of [`db/init.sql`](db/init.sql), and run it. This creates the relational tables, seeds the default 10 machines, and registers the Power BI views.
 
-> The backend will also auto-create tables + seed machines on startup
-> (`AUTO_INIT_DB=true`), but the **Power BI views** are only created by `init.sql`.
-
-### 3. Launch the stack
+### 3. Launch the Stack
+Start all services in Docker Compose:
 ```powershell
 docker compose up --build -d
 ```
-This starts: `backend` (:8000), `simulator`, `etl`, `frontend` (:5173).
+This starts:
+* `backend` (:8000)
+* `simulator` (POSTs telemetry)
+* `etl` (runs hourly aggregate rollups)
+* `frontend` (:5173)
 
-### 4. Open it
-| What            | URL                                |
-|-----------------|------------------------------------|
-| Dashboard       | http://localhost:5173              |
-| API docs        | http://localhost:8000/docs         |
-| Health          | http://localhost:8000/health       |
+### 4. Access the Applications
+| Interface / Service | Endpoint URL |
+| :--- | :--- |
+| **Glassmorphic Web Dashboard** | [http://localhost:5173](http://localhost:5173) |
+| **FastAPI Swagger API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) |
+| **Backend Health Endpoint** | [http://localhost:8000/health](http://localhost:8000/health) |
 
-Within a few seconds the simulator begins POSTing telemetry; machine cards,
-live charts and the anomaly feed update in real time over WebSocket.
-
----
-
-## Run with a local Postgres instead of cloud
-
-```powershell
-# point the DB at the bundled container, then bring up the local-db profile
-#   DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/monitoring
-#   DB_SSLMODE=disable
-docker compose --profile local-db up --build -d
-```
-`db/init.sql` runs automatically on first boot of the local Postgres volume.
+Within seconds, the simulator begins posting live telemetry. Machine cards, sensor charts, and critical anomaly feeds will automatically update in real-time.
 
 ---
 
-## Local development (without Docker)
+## 📁 Project Directory Structure
 
-```powershell
-# Backend
-cd backend
-python -m venv .venv ; .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# Simulator (new terminal)
-cd simulator ; pip install -r requirements.txt
-$env:BACKEND_URL="http://localhost:8000" ; python simulator.py
-
-# Frontend (new terminal)
-cd frontend ; npm install ; npm run dev
-```
-
----
-
-## API surface
-
-| Method | Path                                   | Purpose                              |
-|--------|----------------------------------------|--------------------------------------|
-| POST   | `/api/telemetry`                       | Ingest a reading (anomaly + RUL + WS)|
-| GET    | `/api/machines`                        | List machines                        |
-| GET    | `/api/machines/status`                 | Cards: latest reading + prediction   |
-| GET    | `/api/machines/{id}/telemetry?limit=`  | Recent telemetry (chronological)     |
-| GET    | `/api/anomalies?limit=&severity=`      | Recent anomalies                     |
-| GET    | `/api/maintenance`                     | Latest prediction per machine (ranked)|
-| GET    | `/api/overview`                        | KPI tiles (OEE, health, energy…)     |
-| WS     | `/ws/live`                             | Real-time telemetry + anomaly stream |
-
----
-
-## How the analytics work
-
-- **Anomaly detection** ([backend/app/analytics.py](backend/app/analytics.py)):
-  rolling **Z-score** over the last N readings per sensor (`warning` ≥ 3σ,
-  `critical` ≥ 4.5σ) plus **hard physical limits** that always escalate to
-  critical.
-- **Predictive maintenance**: an explainable blend of **usage wear**
-  (operating hours vs design life), **recent anomaly pressure** (24h,
-  severity-weighted), and **instantaneous stress** (temperature/vibration
-  headroom) → `risk_score`, `health_index`, `rul_hours`, and a recommended
-  service date with human-readable **drivers**.
-
----
-
-## Project layout
 ```
 .
-├── docker-compose.yml          # full-stack orchestration
-├── .env.example                # copy to .env and fill Supabase creds
-├── db/init.sql                 # schema + seed + Power BI views
-├── backend/                    # FastAPI app (api, analytics, ws)
-├── simulator/                  # IoT data generator
-├── etl/                        # Pandas daily aggregator
-├── frontend/                   # Vite + React dashboard (Recharts)
-└── powerbi/README.md           # Power BI connection + DAX kit
+├── docker-compose.yml          # Full-stack Docker orchestration
+├── .env.example                # Template for environment settings
+├── db/
+│   └── init.sql                # SQL schema, metadata seeds, and Power BI views
+├── backend/
+│   ├── Dockerfile              # Backend container file
+│   └── app/                    # FastAPI application (endpoints, db models, analytics, websockets)
+├── simulator/
+│   ├── Dockerfile              # Simulator container file
+│   └── simulator.py            # IoT telemetry generator
+├── etl/
+│   ├── Dockerfile              # ETL worker container file
+│   └── etl_job.py              # Pandas aggregate generator
+├── frontend/
+│   ├── src/                    # React dashboard sources (Recharts component, WebSocket hooks)
+│   └── index.html              # Main dashboard wrapper
+├── powerbi/
+│   └── README.md               # Power BI connection guidelines & DAX measures
+├── findings.md                 # Live dashboard screenshots & operational findings
+├── architecture.md             # Data flow blueprints, schemas, and analytics logic
+└── wiki.md                     # Operator manuals, setup guides, and troubleshooting
 ```
-
----
-
-## Verification checklist
-1. `docker compose up --build -d` → all 4 services healthy (`docker compose ps`).
-2. `GET http://localhost:8000/health` → `{"status":"ok"}`.
-3. Swagger at `/docs` → `POST /api/telemetry` returns anomalies/prediction.
-4. Simulator logs show telemetry being posted (and occasional injected faults).
-5. Dashboard at `:5173` shows live cards, charts, and the anomaly feed updating.
-6. In Supabase SQL editor: `SELECT count(*) FROM telemetry_raw;` grows over time.
-7. Power BI: connect to the `vw_*` views (see [powerbi/README.md](powerbi/README.md)).
