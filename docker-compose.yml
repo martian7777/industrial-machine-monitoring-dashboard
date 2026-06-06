@@ -1,0 +1,70 @@
+# ============================================================================
+#  Industrial Machine Monitoring — full stack orchestration
+#
+#  Default target: CLOUD SUPABASE (set DATABASE_URL in .env).
+#  Optional local Postgres is available behind the "local-db" profile:
+#      docker compose --profile local-db up --build
+#  ...and point DATABASE_URL at the bundled db (see .env note).
+# ============================================================================
+
+services:
+  # ---- Optional local Postgres (Supabase-compatible). Disabled by default. ----
+  db:
+    image: postgres:16-alpine
+    profiles: ["local-db"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: monitoring
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d monitoring"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      # Backend talks to the DB defined by DATABASE_URL in .env (cloud Supabase).
+      AUTO_INIT_DB: "${AUTO_INIT_DB:-true}"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  simulator:
+    build: ./simulator
+    env_file: .env
+    environment:
+      BACKEND_URL: "http://backend:8000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  etl:
+    build: ./etl
+    env_file: .env
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    env_file: .env
+    environment:
+      # In docker dev mode the browser still hits the host-published ports.
+      VITE_API_BASE_URL: "${VITE_API_BASE_URL:-http://localhost:8000}"
+      VITE_WS_URL: "${VITE_WS_URL:-ws://localhost:8000/ws/live}"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
